@@ -1,3 +1,6 @@
+from itertools import combinations
+from math import gcd, prod
+
 from Day import Day
 
 
@@ -33,6 +36,9 @@ class Day13(Day):
     Smarter approach 2 : t = bus_id * x - bus_index, so (count_buses)*t = sum(bus_id*a factor - bus_index)
         So I can try all combination of (count_buses) factors as base_timestamp
     Super smart approach : there must be some maths that can give relations between all the bus_ids denominators... But the reseach might be longer than the smarter approach.
+        -> My other methods are not efficient enough, so I looked into a hint on reddit, and learned about the https://fr.wikipedia.org/wiki/Th%C3%A9or%C3%A8me_des_restes_chinois
+        t is x from the theorem, let's implement this
+        -> I had to use someone elses implem because my implem with the bezout coefs would not return the minimal response
     """
 
     def __init__(self):
@@ -112,22 +118,78 @@ class Day13(Day):
             t_after_timestamp, range(minimum_factor, minimum_factor + 1000001)
         )
 
+    @staticmethod
+    def get_gcd(int_1, int_2):
+        return gcd(int_1, int_2)
+
+    @staticmethod
+    def bezout(a, b):
+        if b == 0:
+            return 1, 0
+        else:
+            u, v = Day13.bezout(b, a % b)
+
+        return v, u - (a // b) * v
+
+    def chinese_remainder_theorem(self, rests, mods):
+        for couple in combinations(mods, 2):
+            if self.get_gcd(*couple) != 1:
+                print(f"ERROR {couple} are not pairwise coprimes")
+
+        n = prod(mods)
+
+        x = 0
+        for index, mod in enumerate(mods):
+            ni = mod
+
+            bi = (ni - rests[index]) % ni
+
+            n_inv = n // ni
+
+            c = n_inv % ni
+
+            xi = 1
+            while (c * xi) % ni != 1:
+                xi += 1
+
+            x += bi * n_inv * xi
+
+        return x % n
+
     def run_example_part_2(self):
         expected_result = 1068781
 
         timestamp, buses = self.parse_input_file("example")
-        base_timestamp = self.find_base_timestamp(buses, 0)
+        # timestamp, buses = 0, ["3", "x", "x", "4", "5"]
 
-        assert base_timestamp == expected_result
+        rests = []
+        mods = []
+        for index, bus_id in enumerate(buses):
+            if bus_id != "x":
+                mods.append(int(bus_id))
+                rests.append(index)
+
+        crt = self.chinese_remainder_theorem(rests, mods)
+
+        # naive
+        # base_timestamp = self.find_base_timestamp(buses, 0)
+
+        assert crt == expected_result
 
     def run_puzzle_part_2(self):
         # pass
         timestamp, buses = self.parse_input_file("puzzle")
 
-        # first run stopped at 100129881103840 because not efficient
-        base_timestamp = self.find_base_timestamp(buses, 100129881103840)
+        rests = []
+        mods = []
+        for index, bus_id in enumerate(buses):
+            if bus_id != "x":
+                mods.append(int(bus_id))
+                rests.append(index)
 
-        print(f"part 2 - {base_timestamp}")
+        crt = self.chinese_remainder_theorem(rests, mods)
+
+        print(f"part 2 - {crt}")
 
 
 if __name__ == "__main__":
