@@ -74,47 +74,43 @@ class Day13(Day):
     @staticmethod
     def timestamp_works(t_after_timestamp, base_timestamp):
         found = True
-        for bus in t_after_timestamp:
+        for bus_id in t_after_timestamp:
+            bus = Bus(bus_id)
             if not bus.has_departure_at_timestamp(
-                base_timestamp + t_after_timestamp[bus]
+                base_timestamp + t_after_timestamp[bus_id]
             ):
                 found = False
                 break
 
         return found
 
-    def find_base_timestamp(self, buses, minimum_timestamp):
-        nb_buses = len(buses)
+    def test_factors(self, bus_list, factors):
+        highest_bus_id = max(bus_list)
+        highest_bus_index = bus_list[highest_bus_id]
 
-        first_bus_id = int(buses[0])
-        t_after_timestamp = {}
-
-        highest_bus_id = 0
-        highest_bus = None
-        highest_bus_index = 0
-        for index, bus_id in enumerate(buses):
-            if bus_id != "x":
-                bus = Bus(int(bus_id))
-                t_after_timestamp[bus] = index
-
-                if int(bus_id) > highest_bus_id:
-                    highest_bus_id = int(bus_id)
-                    highest_bus = bus
-                    highest_bus_index = index
-
-        l_index = first_timestamp // highest_bus_id
         base_timestamp = 0
-        found = False
-        while not found:
-            base_timestamp = highest_bus_id * l_index - highest_bus_index
+        for factor in factors:
+            base_timestamp = highest_bus_id * factor - highest_bus_index
 
-            found = self.timestamp_works(t_after_timestamp, base_timestamp)
+            found = self.timestamp_works(bus_list, base_timestamp)
             if found:
                 break
-            # needed to avoid infinite loop
-            l_index += 1
 
         return base_timestamp
+
+    def find_base_timestamp(self, buses, minimum_timestamp):
+        t_after_timestamp = {}
+        for index, bus_id in enumerate(buses):
+            if bus_id != "x":
+                t_after_timestamp[int(bus_id)] = index
+
+        highest_bus_id = max(t_after_timestamp)
+        minimum_factor = minimum_timestamp // highest_bus_id
+
+        # up to a million factors, it's decent perf, so I could parallelize this
+        return self.test_factors(
+            t_after_timestamp, range(minimum_factor, minimum_factor + 1000001)
+        )
 
     def run_example_part_2(self):
         expected_result = 1068781
